@@ -1529,5 +1529,6 @@ objects:
         "bearer-only": true,
         "auth-server-url": "https://${ROUTE_HOSTNAME}/auth",
         "ssl-required": "external",
-        "resource": "ipaas-rest"
+        "resource": "ipaas-rest",
+        "allow-any-hostname" : true
       }
