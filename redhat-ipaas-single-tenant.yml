@@ -1589,5 +1589,5 @@ objects:
         "auth-server-url": "https://${ROUTE_HOSTNAME}/auth",
         "ssl-required": "external",
         "resource": "ipaas-rest",
-        "allow-any-hostname" : "${KEYCLOAK_ALLOW_ANY_HOSTNAME}"
+        "allow-any-hostname" : ${KEYCLOAK_ALLOW_ANY_HOSTNAME}
       }
