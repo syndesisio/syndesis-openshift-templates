@@ -98,7 +98,7 @@ parameters:
 - description: Ignore SSL errors in proxy containers
   displayName: Insecure skip verify
   name: INSECURE_SKIP_VERIFY
-  value: 'true'
+  value: 'false'
 message: |-
   Red Hat iPaaS is deployed to ${ROUTE_HOSTNAME}.
 
