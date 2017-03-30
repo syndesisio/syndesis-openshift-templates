@@ -33,12 +33,14 @@ var installCommand = &cobra.Command{
 
 type Context struct {
 	ImageStreams bool;
+	ClusterAdmin bool;
 }
 
 var context = Context{}
 
 func init() {
-	installCommand.PersistentFlags().BoolVar(&context.ImageStreams, "image-streams", true, "Should the templates use image streams.")
+	installCommand.PersistentFlags().BoolVar(&context.ImageStreams, "image-streams", true, "Should the template use image streams?")
+	installCommand.PersistentFlags().BoolVar(&context.ImageStreams, "cluster-admin", true, "Should the templaae crate cluster resources?")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 }
 
