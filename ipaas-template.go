@@ -1,11 +1,11 @@
 // To install, run:
 //
 //   go get -u github.com/spf13/cobra github.com/spf13/pflag github.com/hoisie/mustache
-//   go install ipaas-install.go
+//   go install ipaas-template.go
 //
 // Or to just test locally:
 //
-//     go run ipaas-install.go <args>
+//     go run ipaas-template.go <args>
 //
 package main
 
@@ -40,7 +40,7 @@ var context = Context{}
 
 func init() {
 	installCommand.PersistentFlags().BoolVar(&context.ImageStreams, "image-streams", true, "Should the template use image streams?")
-	installCommand.PersistentFlags().BoolVar(&context.ImageStreams, "cluster-admin", true, "Should the templaae crate cluster resources?")
+	installCommand.PersistentFlags().BoolVar(&context.ClusterAdmin, "cluster-admin", true, "Should the templaae crate cluster resources?")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 }
 
