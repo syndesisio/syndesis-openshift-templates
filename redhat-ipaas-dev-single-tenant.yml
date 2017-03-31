@@ -94,6 +94,10 @@ parameters:
   name: POSTGRESQL_VOLUME_CAPACITY
   required: true
   value: 1Gi
+- description: Ignore SSL errors in proxy containers
+  displayName: Insecure skip verify
+  name: INSECURE_SKIP_VERIFY
+  value: 'false'
 message: |-
   Red Hat iPaaS is deployed to ${ROUTE_HOSTNAME}.
 
@@ -480,6 +484,7 @@ objects:
           - -tls-key=/tls/tls.key
           - -ca-cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
           - -ca-cert=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          - -insecure-skip-verify=${INSECURE_SKIP_VERIFY}
           readinessProbe:
             tcpSocket:
               port: 8080
@@ -539,6 +544,7 @@ objects:
           - -tls-key=/tls/tls.key
           - -ca-cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
           - -ca-cert=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          - -insecure-skip-verify=${INSECURE_SKIP_VERIFY}
           readinessProbe:
             tcpSocket:
               port: 8080
