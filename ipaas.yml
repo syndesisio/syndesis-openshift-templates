@@ -133,10 +133,10 @@ objects:
     tags:
     - from:
         kind: DockerImage
-        name: docker.io/rhipaas/ipaas-rest:latest
+        name: docker.io/rhipaas/ipaas-rest:summit-demo
       importPolicy:
         scheduled: true
-      name: latest
+      name: summit-demo
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -163,10 +163,10 @@ objects:
     tags:
     - from:
         kind: DockerImage
-        name: docker.io/rhipaas/ipaas-ui:latest
+        name: docker.io/rhipaas/ipaas-ui:summit-demo
       importPolicy:
         scheduled: true
-      name: latest
+      name: summit-demo
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -193,10 +193,10 @@ objects:
     tags:
     - from:
         kind: DockerImage
-        name: docker.io/atlasmap/ipaas-datamapper:latest
+        name: docker.io/atlasmap/ipaas-datamapper:summit-demo
       importPolicy:
         scheduled: true
-      name: latest
+      name: summit-demo
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -208,10 +208,10 @@ objects:
     tags:
     - from:
         kind: DockerImage
-        name: docker.io/rhipaas/ipaas-verifier:latest
+        name: docker.io/rhipaas/ipaas-verifier:summit-demo
       importPolicy:
         scheduled: true
-      name: latest
+      name: summit-demo
 
 - apiVersion: v1
   kind: ServiceAccount
@@ -377,7 +377,7 @@ objects:
         - ipaas-datamapper
         from:
           kind: ImageStreamTag
-          name: ipaas-datamapper:latest
+          name: ipaas-datamapper:summit-demo
       type: ImageChange
 
 
@@ -440,7 +440,7 @@ objects:
     resources:
       requests:
         storage: ${POSTGRESQL_VOLUME_CAPACITY}
-    
+
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -1944,7 +1944,7 @@ objects:
     to:
       kind: Service
       name: ipaas-rest
-      weight: 100      
+      weight: 100
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -2066,7 +2066,7 @@ objects:
         - ipaas-rest
         from:
           kind: ImageStreamTag
-          name: ipaas-rest:latest
+          name: ipaas-rest:summit-demo
       type: ImageChange
 
     - type: ConfigChange
@@ -2226,7 +2226,7 @@ objects:
         - ipaas-ui
         from:
           kind: ImageStreamTag
-          name: ipaas-ui:latest
+          name: ipaas-ui:summit-demo
       type: ImageChange
 
     - type: ConfigChange
@@ -2384,7 +2384,7 @@ objects:
         - ipaas-verifier
         from:
           kind: ImageStreamTag
-          name: ipaas-verifier:latest
+          name: ipaas-verifier:summit-demo
       type: ImageChange
 
     - type: ConfigChange
