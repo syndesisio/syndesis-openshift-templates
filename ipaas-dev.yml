@@ -7,6 +7,12 @@ metadata:
   name: ipaas-dev
 parameters:
 # Parameters with no defaults (has to be be provided when template is applied):
+- name: TARGET_NAMESPACE
+  description: The target namespace
+  value: ipaas-staging
+- name: CI_NAMESPACE
+  description: The ci namespace
+  value: ipaas-ci
 - name: ROUTE_HOSTNAME
   description: The external hostname to access the iPaaS
   required: true
@@ -2276,8 +2282,8 @@ objects:
   - kind: ServiceAccount
     name: ipaas-integration
   userNames:
-  - system:serviceaccount:ipaas-staging:ipaas-rest
-  - system:serviceaccount:ipaas-staging:ipaas-integration
+  - system:serviceaccount:${TARGET_NAMESPACE}:ipaas-rest
+  - system:serviceaccount:${TARGET_NAMESPACE}:ipaas-integration
 - apiVersion: v1
   kind: RoleBinding
   metadata:
@@ -2289,12 +2295,12 @@ objects:
   subjects:
   - kind: ServiceAccount
     name: ipaas-deployer
-    namespace: ipaas-staging
+    namespace: ${TARGET_NAMESPACE}
   - kind: ServiceAccount
     name: jenkins
-    namespace: ipaas-ci
+    namespace: ${CI_NAMESPACE}
   - kind: Group
     name: dedicated-admins
   userNames:
-  - system:serviceaccount:ipaas-staging:ipaas-deployer
-  - system:serviceaccount:ipaas-ci:jenkins
+  - system:serviceaccount:${TARGET_NAMESPACE}:ipaas-deployer
+  - system:serviceaccount:${CI_NAMESPACE}:jenkins
