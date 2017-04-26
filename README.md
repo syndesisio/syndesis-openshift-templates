@@ -57,6 +57,8 @@ Once all pods are started up, you should be able to access the iPaaS at `https:/
 
 | Parameter | Description | Default |
 | --------- | ----------- | ------- |
+| **TARGET_NAMESPACE** | The target namespace | ipaas-staging |
+| **CI_NAMESPACE** | The namespace where ci is installed | ipaas-ci |
 | **KEYCLOAK_ROUTE_HOSTNAME** | The external hostname to access the iPaaS Keycloak | ipaas-keycloak.127.0.0.1.xip.io |
 | **KEYCLOAK_ADMIN_USERNAME** |  The Keycloak admin username | admin |
 | **KEYCLOAK_ADMIN_PASSWORD** | The Keycloak admin password | _(generated)_ |

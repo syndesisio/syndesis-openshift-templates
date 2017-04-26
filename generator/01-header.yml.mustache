@@ -4,6 +4,12 @@ metadata:
   name: {{Name}}
 parameters:
 # Parameters with no defaults (has to be be provided when template is applied):
+- name: TARGET_NAMESPACE
+  description: The target namespace
+  value: ipaas-staging
+- name: CI_NAMESPACE
+  description: The ci namespace
+  value: ipaas-ci
 - name: ROUTE_HOSTNAME
   description: The external hostname to access the iPaaS
   required: true
