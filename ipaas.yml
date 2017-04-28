@@ -133,10 +133,10 @@ objects:
     tags:
     - from:
         kind: DockerImage
-        name: docker.io/rhipaas/ipaas-rest:latest
+        name: docker.io/rhipaas/ipaas-rest:summit-demo-hiram
       importPolicy:
         scheduled: true
-      name: latest
+      name: summit-demo-hiram
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -163,10 +163,10 @@ objects:
     tags:
     - from:
         kind: DockerImage
-        name: docker.io/rhipaas/ipaas-ui:latest
+        name: docker.io/rhipaas/ipaas-ui:summit-demo-hiram
       importPolicy:
         scheduled: true
-      name: latest
+      name: summit-demo-hiram
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -193,10 +193,10 @@ objects:
     tags:
     - from:
         kind: DockerImage
-        name: docker.io/atlasmap/ipaas-datamapper:latest
+        name: docker.io/atlasmap/ipaas-datamapper:summit-demo-hiram
       importPolicy:
         scheduled: true
-      name: latest
+      name: summit-demo-hiram
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -208,10 +208,10 @@ objects:
     tags:
     - from:
         kind: DockerImage
-        name: docker.io/rhipaas/ipaas-verifier:latest
+        name: docker.io/rhipaas/ipaas-verifier:summit-demo-hiram
       importPolicy:
         scheduled: true
-      name: latest
+      name: summit-demo-hiram
 
 - apiVersion: v1
   kind: ServiceAccount
@@ -377,7 +377,7 @@ objects:
         - ipaas-datamapper
         from:
           kind: ImageStreamTag
-          name: ipaas-datamapper:latest
+          name: ipaas-datamapper:summit-demo-hiram
       type: ImageChange
 
 
@@ -2073,7 +2073,7 @@ objects:
         - ipaas-rest
         from:
           kind: ImageStreamTag
-          name: ipaas-rest:latest
+          name: ipaas-rest:summit-demo-hiram
       type: ImageChange
 
     - type: ConfigChange
@@ -2243,7 +2243,7 @@ objects:
         - ipaas-ui
         from:
           kind: ImageStreamTag
-          name: ipaas-ui:latest
+          name: ipaas-ui:summit-demo-hiram
       type: ImageChange
 
     - type: ConfigChange
@@ -2401,7 +2401,7 @@ objects:
         - ipaas-verifier
         from:
           kind: ImageStreamTag
-          name: ipaas-verifier:latest
+          name: ipaas-verifier:summit-demo-hiram
       type: ImageChange
 
     - type: ConfigChange
