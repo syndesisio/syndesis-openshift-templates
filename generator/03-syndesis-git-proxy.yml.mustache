@@ -2,32 +2,32 @@
   kind: Service
   metadata:
     labels:
-      app: redhat-ipaas
-      component: ipaas-openshift-proxy
+      app: syndesis
+      component: syndesis-github-proxy
     annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: ipaas-openshift-proxy-tls
-    name: ipaas-openshift-proxy
+      service.alpha.openshift.io/serving-cert-secret-name: syndesis-github-proxy-tls
+    name: syndesis-github-proxy
   spec:
     ports:
     - port: 443
       protocol: TCP
       targetPort: 8080
     selector:
-      app: redhat-ipaas
-      component: ipaas-openshift-proxy
+      app: syndesis
+      component: syndesis-github-proxy
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
     labels:
-      app: redhat-ipaas
-      component: ipaas-openshift-proxy
-    name: ipaas-openshift-proxy
+      app: syndesis
+      component: syndesis-github-proxy
+    name: syndesis-github-proxy
   spec:
     replicas: 1
     selector:
-      app: redhat-ipaas
-      component: ipaas-openshift-proxy
-      deploymentconfig: ipaas-openshift-proxy
+      app: syndesis
+      component: syndesis-github-proxy
+      deploymentconfig: syndesis-github-proxy
     strategy:
       rollingParams:
         intervalSeconds: 1
@@ -39,24 +39,24 @@
     template:
       metadata:
         labels:
-          app: redhat-ipaas
-          component: ipaas-openshift-proxy
-          deploymentconfig: ipaas-openshift-proxy
+          app: syndesis
+          component: syndesis-github-proxy
+          deploymentconfig: syndesis-github-proxy
       spec:
         containers:
-        - name: ipaas-openshift-proxy
+        - name: syndesis-github-proxy
 {{^Dev}}
           image: ' '
 {{/Dev}}{{#Dev}}
-          image: rhipaas/token-rp:v0.4.0
+          image: syndesis/token-rp:v0.4.0
 {{/Dev}}
           imagePullPolicy: IfNotPresent
           args:
           - -issuer-url=https://${ROUTE_HOSTNAME}/auth/realms/${KEYCLOAK_IPAAS_REALM_NAME}
-          - -proxy-url=${OPENSHIFT_MASTER}
-          - -client-id=ipaas-ui
-          - -provider-alias=openshift
-          - -provider-type=openshift
+          - -proxy-url=https://api.github.com
+          - -client-id=syndesis-ui
+          - -provider-alias=github
+          - -provider-type=github
           - -tls-cert=/tls/tls.crt
           - -tls-key=/tls/tls.key
           - -ca-cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -73,17 +73,17 @@
             name: tls-volume
         volumes:
         - secret:
-            secretName: ipaas-openshift-proxy-tls
+            secretName: syndesis-github-proxy-tls
           name: tls-volume
     triggers:
 {{^Dev}}
     - imageChangeParams:
         automatic: true
         containerNames:
-        - ipaas-openshift-proxy
+        - syndesis-github-proxy
         from:
           kind: ImageStreamTag
-          name: ipaas-token-rp:v0.4.0
+          name: syndesis-token-rp:v0.4.0
       type: ImageChange
 {{/Dev}}
     - type: ConfigChange

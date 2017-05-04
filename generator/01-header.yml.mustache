@@ -16,7 +16,7 @@ parameters:
 # Parameters with defaults:
 - name: KEYCLOAK_ROUTE_HOSTNAME
   description: The external hostname to access the iPaaS Keycloak directly
-  value: ipaas-keycloak.127.0.0.1.xip.io
+  value: syndesis-keycloak.127.0.0.1.xip.io
   required: true
 - name: KEYCLOAK_ADMIN_USERNAME
   description: The Keycloak admin username
@@ -29,7 +29,7 @@ parameters:
   required: true
 - name: KEYCLOAK_IPAAS_REALM_NAME
   description: Keycloak iPaaS realm name
-  value: ipaas
+  value: syndesis
   required: true
 - name: KEYCLOAK_IPAAS_REST_CLIENT_SECRET
   description: iPaaS REST service client secret
@@ -46,7 +46,7 @@ parameters:
   required: true
 - name: OPENSHIFT_OAUTH_CLIENT_ID
   description: OpenShift OAuth client ID
-  value: ipaas
+  value: syndesis
   required: true
 - name: OPENSHIFT_OAUTH_CLIENT_SECRET
   description: OpenShift OAuth client secret
@@ -76,7 +76,7 @@ parameters:
 - description: Username for PostgreSQL user that will be used for accessing the database.
   displayName: PostgreSQL Connection Username
   name: POSTGRESQL_USER
-  value: ipaas
+  value: syndesis
 - description: Password for the PostgreSQL connection user.
   displayName: PostgreSQL Connection Password
   from: '[a-zA-Z0-9]{16}'
@@ -87,7 +87,7 @@ parameters:
   displayName: PostgreSQL Database Name
   name: POSTGRESQL_DATABASE
   required: true
-  value: ipaas
+  value: syndesis
 - description: Volume space available for PostgreSQL data, e.g. 512Mi, 2Gi.
   displayName: Volume Capacity
   name: POSTGRESQL_VOLUME_CAPACITY
