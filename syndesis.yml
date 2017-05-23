@@ -2363,13 +2363,11 @@ objects:
             httpGet:
               path: /health
               port: 8080
-              scheme: HTTP
             initialDelaySeconds: 10
           livenessProbe:
             httpGet:
               path: /health
               port: 8080
-              scheme: HTTP
             initialDelaySeconds: 180
           ports:
           - containerPort: 8080
