@@ -773,6 +773,13 @@ objects:
           name: syndesis-keycloak
           imagePullPolicy: IfNotPresent
 
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 612Mi
+            requests:
+              cpu: 200m
+              memory: 612Mi
           ports:
           - containerPort: 8080
           volumeMounts:

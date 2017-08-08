@@ -765,6 +765,13 @@ objects:
               path: "/auth/"
               port: 8080
             initialDelaySeconds: 10
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 612Mi
+            requests:
+              cpu: 200m
+              memory: 612Mi
           ports:
           - containerPort: 8080
           volumeMounts:
