@@ -280,6 +280,10 @@ objects:
         maxUnavailable: 25%
         timeoutSeconds: 10800
         updatePeriodSeconds: 1
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "256Mi"
       type: Rolling
     template:
       metadata:
@@ -461,6 +465,10 @@ objects:
       component: syndesis-db
     strategy:
       type: Recreate
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "256Mi"
     template:
       metadata:
         labels:
@@ -553,6 +561,10 @@ objects:
         maxUnavailable: 25%
         timeoutSeconds: 600
         updatePeriodSeconds: 1
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "256Mi"
       type: Rolling
     template:
       metadata:
@@ -712,6 +724,10 @@ objects:
         maxUnavailable: 25%
         timeoutSeconds: 600
         updatePeriodSeconds: 1
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "256Mi"
       type: Rolling
     template:
       metadata:
@@ -1873,6 +1889,10 @@ objects:
         maxUnavailable: 25%
         timeoutSeconds: 600
         updatePeriodSeconds: 1
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "256Mi"
       type: Rolling
     template:
       metadata:
@@ -2014,6 +2034,10 @@ objects:
         maxUnavailable: 25%
         timeoutSeconds: 10800
         updatePeriodSeconds: 1
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "256Mi"
       type: Rolling
     template:
       metadata:
@@ -2254,6 +2278,10 @@ objects:
         maxUnavailable: 25%
         timeoutSeconds: 600
         updatePeriodSeconds: 1
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "256Mi"
       type: Rolling
     template:
       metadata:
@@ -2363,6 +2391,10 @@ objects:
         maxUnavailable: 25%
         timeoutSeconds: 10800
         updatePeriodSeconds: 1
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "256Mi"
       type: Rolling
     template:
       metadata:
