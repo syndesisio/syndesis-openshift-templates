@@ -16,6 +16,12 @@ parameters:
 - name: GITHUB_OAUTH_CLIENT_SECRET
   description: GitHub OAuth client secret
   required: true
+- name: TEST_USER_GITHUB_USER_ID
+  description: Test user GitHub user ID
+  required: true
+- name: TEST_USER_GITHUB_USER_NAME
+  description: Test user GitHub user name
+  required: true
 # Parameters with defaults:
 - name: KEYCLOAK_ROUTE_HOSTNAME
   description: The external hostname to access Syndesis Keycloak directly
@@ -46,6 +52,19 @@ parameters:
 - name: OPENSHIFT_MASTER
   description: Public OpenShift master address
   value: https://localhost:8443
+  required: true
+- name: TEST_USER_PASSWORD
+  description: The Keycloak test user password
+  generate: expression
+  from: "[a-zA-Z0-9]{10}"
+  required: true
+- name: TEST_USER_OPENSHIFT_USER_ID
+  description: OpenShift user id - default is ok for minishift, change it for OpenShift
+  value: 8f762a9b-7e71-11e7-868d-3eb6d1420952
+  required: true
+- name: TEST_USER_OPENSHIFT_USER_NAME
+  description: OpenShift user name
+  value: test
   required: true
 - name: OPENSHIFT_OAUTH_CLIENT_ID
   description: OpenShift OAuth client ID
@@ -126,6 +145,7 @@ message: |-
   Syndesis is deployed to ${ROUTE_HOSTNAME}.
 
     FYI Keycloak Admin username is '${KEYCLOAK_ADMIN_USERNAME}', password '${KEYCLOAK_ADMIN_PASSWORD}'.
+    FYI Keycloak test user password is '${TEST_USER_PASSWORD}'.
 objects:
 - apiVersion: v1
   kind: ImageStream
@@ -1500,6 +1520,35 @@ objects:
           "xFrameOptions": "SAMEORIGIN",
           "contentSecurityPolicy": "frame-src 'self'"
         },
+        "users": [
+          {
+            "username": "test",
+            "enabled": true,
+            "email": "test@test.test",
+            "firstName": "John",
+            "lastName": "Doe",
+            "credentials": [
+              {
+                "type": "password",
+                "value": "${TEST_USER_PASSWORD}"
+              }
+            ],
+            "realmRoles":
+              [ "offline_access" ],
+            "federatedIdentities": [
+              {
+                "identityProvider": "github",
+                "userId": "${TEST_USER_GITHUB_USER_ID}",
+                "userName": "${TEST_USER_GITHUB_USER_NAME}"
+              },
+              {
+               "identityProvider": "openshift",
+                "userId": "${TEST_USER_OPENSHIFT_USER_ID}",
+                "userName": "${TEST_USER_OPENSHIFT_USER_NAME}"
+              }
+            ]
+          }
+        ],
         "eventsEnabled": false,
         "eventsListeners": [ "jboss-logging" ],
         "adminEventsEnabled": false,
