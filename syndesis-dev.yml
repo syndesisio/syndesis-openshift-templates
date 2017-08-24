@@ -296,10 +296,8 @@ objects:
             mountPath: /deployments/config
           resources:
             limits:
-              cpu: 2000m
               memory: 612Mi
             requests:
-              cpu: 200m
               memory: 255Mi
         volumes:
         - name: syndesis-atlasmap-tls
@@ -1775,10 +1773,8 @@ objects:
           # Note: Does not work on OSO (theres a fixed ration between limits / requests)
           resources:
             limits:
-              cpu: 1000m
               memory: 255Mi
             requests:
-              cpu: 200m
               memory: 40Mi
         volumes:
         - secret:
@@ -1989,7 +1985,6 @@ objects:
             limits:
               memory: 612Mi
             requests:
-              cpu: 200m
               memory: 256Mi
         volumes:
         - name: syndesis-rest-tls
@@ -2164,7 +2159,6 @@ objects:
             limits:
               memory: 255Mi
             requests:
-              cpu: 200m
               memory: 50Mi
         volumes:
         - configMap:
@@ -2332,10 +2326,8 @@ objects:
             protocol: TCP
           resources:
             limits:
-              cpu: 2000m
               memory: 512Mi
             requests:
-              cpu: 200m
               memory: 280Mi
           # spring-boot automatically picks up application.yml from ./config
           workingDir: /deployments
