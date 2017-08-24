@@ -920,7 +920,37 @@
           "xContentTypeOptions": "nosniff",
           "xFrameOptions": "SAMEORIGIN",
           "contentSecurityPolicy": "frame-src 'self'"
-        },
+        },{{#Probeless}}
+
+        "users": [
+          {
+            "username": "test",
+            "enabled": true,
+            "email": "test@test.test",
+            "firstName": "John",
+            "lastName": "Doe",
+            "credentials": [
+              {
+                "type": "password",
+                "value": "${TEST_USER_PASSWORD}"
+              }
+            ],
+            "realmRoles":
+              [ "offline_access" ],
+            "federatedIdentities": [
+              {
+                "identityProvider": "github",
+                "userId": "${TEST_USER_GITHUB_USER_ID}",
+                "userName": "${TEST_USER_GITHUB_USER_NAME}"
+              },
+              {
+               "identityProvider": "openshift",
+                "userId": "${TEST_USER_OPENSHIFT_USER_ID}",
+                "userName": "${TEST_USER_OPENSHIFT_USER_NAME}"
+              }
+            ]
+          }
+        ],{{/Probeless}}
         "eventsEnabled": false,
         "eventsListeners": [ "jboss-logging" ],
         "adminEventsEnabled": false,
