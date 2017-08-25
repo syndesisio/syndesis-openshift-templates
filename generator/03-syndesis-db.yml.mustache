@@ -35,6 +35,13 @@
         storage: ${POSTGRESQL_VOLUME_CAPACITY}
 {{/Ephemeral}}    
 - apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    labels:
+      app: syndesis
+      component: syndesis-db
+    name: syndesis-db
+- apiVersion: v1
   kind: DeploymentConfig
   metadata:
     name: syndesis-db
@@ -59,6 +66,7 @@
           app: syndesis
           component: syndesis-db
       spec:
+        serviceAccountName: syndesis-db
         containers:
         - capabilities: {}
           env:
