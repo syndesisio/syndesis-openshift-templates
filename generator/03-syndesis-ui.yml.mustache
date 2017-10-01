@@ -95,7 +95,7 @@
           ports:
           - containerPort: 8080
           volumeMounts:
-          - mountPath: /usr/share/nginx/html/config.json
+          - mountPath: /opt/app-root/src/config.json
             name: config-volume
             subPath: config/config.json
           # Set to burstable with a low memory footprint to start (50 Mi)
