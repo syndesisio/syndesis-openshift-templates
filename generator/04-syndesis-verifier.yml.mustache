@@ -43,7 +43,7 @@
           pod.beta.kubernetes.io/init-containers: |-
             [{
               "name": "openshift-ca-pemtokeystore",
-              "image": "{{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}",
+              "image": "{{^WithInitContainerDockerImages}}' '{{/WithInitContainerDockerImages}}{{#WithInitContainerDockerImages}}${SYNDESIS_REGISTRY}/{{ Images.SyndesisImagesPrefix }}/{{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}{{/WithInitContainerDockerImages}}",
               "imagePullPolicy": "IfNotPresent",
               "args": [
                 "-keystore", "/tls-keystore/openshift-truststore.jks",
@@ -59,7 +59,7 @@
                 "limits": {
                   "memory": "255Mi"
                 },
-                "requests": { 
+                "requests": {
                   "memory": "20Mi"
                 }
               }
@@ -67,7 +67,7 @@
       spec:
         initContainers:
         - name: openshift-ca-pemtokeystore
-          image: {{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}
+          image: {{^WithInitContainerDockerImages}}' '{{/WithInitContainerDockerImages}}{{#WithInitContainerDockerImages}}${SYNDESIS_REGISTRY}/{{ Images.SyndesisImagesPrefix }}/{{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}{{/WithInitContainerDockerImages}}
           imagePullPolicy: IfNotPresent
           args:
           - -keystore
@@ -94,11 +94,11 @@
             value: /deployments
           - name: JAVA_OPTIONS
             value: "-Djava.net.preferIPv4Stack=true -Djavax.net.ssl.trustStore=/tls-keystore/openshift-truststore.jks -Duser.home=/tmp"
-{{^Dev}}
+{{^WithDockerImages}}
           image: ' '
-{{/Dev}}{{#Dev}}
-          image: ${SYNDESIS_REGISTRY}/{{ Images.Syndesis.Verifier }}:{{ Tags.Syndesis }}
-{{/Dev}}
+{{/WithDockerImages}}{{#WithDockerImages}}
+          image: ${SYNDESIS_REGISTRY}/{{Images.SyndesisImagesPrefix}}/{{ Images.Syndesis.Verifier }}:{{ Tags.Syndesis }}
+{{/WithDockerImages}}
           imagePullPolicy: IfNotPresent
 {{^Probeless}}
           readinessProbe:
@@ -125,10 +125,8 @@
             protocol: TCP
           resources:
             limits:
-              cpu: 2000m
               memory: 512Mi
             requests:
-              cpu: 200m
               memory: 280Mi
           # spring-boot automatically picks up application.yml from ./config
           workingDir: /deployments
@@ -144,16 +142,28 @@
           configMap:
             name: syndesis-verifier-config
     triggers:
-{{^Dev}}
+{{^WithDockerImages}}
     - imageChangeParams:
         automatic: true
         containerNames:
         - syndesis-verifier
         from:
           kind: ImageStreamTag
-          name: syndesis-verifier:{{ Tags.Syndesis }}
+          name: {{ Images.Syndesis.Verifier }}:{{ Tags.Syndesis }}
+          namespace: ${IMAGE_STREAM_NAMESPACE}
       type: ImageChange
-{{/Dev}}
+{{/WithDockerImages}}
+{{^WithInitContainerDockerImages}}
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - openshift-ca-pemtokeystore
+        from:
+          kind: ImageStreamTag
+          name: {{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}
+          namespace: ${IMAGE_STREAM_NAMESPACE}
+      type: ImageChange
+{{/WithInitContainerDockerImages}}
     - type: ConfigChange
 
 - apiVersion: v1

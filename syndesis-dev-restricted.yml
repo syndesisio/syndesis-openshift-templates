@@ -5,6 +5,20 @@ apiVersion: v1
 kind: Template
 metadata:
   name: syndesis-dev-restricted
+#
+# Template flavor:
+#
+# Allow localhost refs: true
+# Use docker images: true
+# Use docker images for init containers: true
+# Ephemeral: false
+# Without Probes: false
+# Atlasmap Tag: latest
+# Syndesis Tag: latest
+# Restricted environment: true
+#
+  labels:
+    app: syndesis
 parameters:
 # Parameters with no defaults (has to be be provided when template is applied):
 - name: ROUTE_HOSTNAME
@@ -96,16 +110,12 @@ parameters:
   displayName: Test Support Enabled
   name: TEST_SUPPORT_ENABLED
   required: true
-  value: "true"
+  value: "false"
 - description: Enables starting up with demo data
   displayName: Demo Data Enabled
   name: DEMO_DATA_ENABLED
   required: true
-  value: "true"
-- description: Ignore SSL errors in proxy containers
-  displayName: Insecure skip verify
-  name: INSECURE_SKIP_VERIFY
-  value: 'false'
+  value: "false"
 - description: Registry from where to fetch Syndesis images
   displayName: Syndesis Image Registry
   name: SYNDESIS_REGISTRY
@@ -123,12 +133,162 @@ parameters:
   displayName: Idle Session Lifespan
   name: SESSION_LIFESPAN
   value: '36000'
+- description: Namespace containing image streams
+  displayName: Image Stream Namespace
+  name: IMAGE_STREAM_NAMESPACE
+  value: ''
 message: |-
   Syndesis is deployed to ${ROUTE_HOSTNAME}.
 
     FYI Keycloak Admin username is '${KEYCLOAK_ADMIN_USERNAME}', password '${KEYCLOAK_ADMIN_PASSWORD}'.
 objects:
 
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: syndesis-ui
+    labels:
+      app: syndesis
+      component: syndesis-ui
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: syndesis-ui-tls
+      service.alpha.openshift.io/dependencies: |
+        [ {"name":"syndesis-keycloak","kind":"Service"},
+          {"name":"syndesis-rest","kind":"Service"},
+          {"name":"syndesis-verifier","kind":"Service"},
+          {"name":"syndesis-atlasmap","kind":"Service"},
+          {"name":"syndesis-github-proxy","kind":"Service"},
+          {"name":"syndesis-openshift-proxy","kind":"Service"},
+          {"name":"syndesis-db","kind":"Service"} ]
+  spec:
+    ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: syndesis
+      component: syndesis-ui
+- apiVersion: v1
+  kind: Route
+  metadata:
+    labels:
+      app: syndesis
+      component: syndesis-ui
+    name: syndesis-ui
+  spec:
+    host: ${ROUTE_HOSTNAME}
+    port:
+      targetPort: 8080
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      termination: edge
+    to:
+      kind: Service
+      name: syndesis-ui
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: syndesis
+      component: syndesis-ui
+    name: syndesis-ui
+  spec:
+    replicas: 1
+    selector:
+      app: syndesis
+      component: syndesis-ui
+      deploymentconfig: syndesis-ui
+    strategy:
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          memory: "20Mi"
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: syndesis
+          component: syndesis-ui
+          deploymentconfig: syndesis-ui
+      spec:
+        containers:
+        - name: syndesis-ui
+          image: ${SYNDESIS_REGISTRY}/syndesis/syndesis-ui:latest
+
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: "/"
+              port: 8080
+            initialDelaySeconds: 30
+          readinessProbe:
+            httpGet:
+              path: "/"
+              port: 8080
+            initialDelaySeconds: 1
+          ports:
+          - containerPort: 8080
+          volumeMounts:
+          - mountPath: /usr/share/nginx/html/config
+            name: config-volume
+          # Set to burstable with a low memory footprint to start (50 Mi)
+          resources:
+            limits:
+              memory: 255Mi
+            requests:
+              memory: 50Mi
+        volumes:
+        - configMap:
+            name: syndesis-ui-config
+          name: config-volume
+    triggers:
+
+    - type: ConfigChange
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: syndesis-ui-config
+    labels:
+      app: syndesis
+      component: syndesis-ui
+  data:
+    config.json: |
+      {
+        "apiEndpoint": "https://${ROUTE_HOSTNAME}/api/v1",
+        "title": "Syndesis",
+        "datamapper": {
+          "baseJavaInspectionServiceUrl": "https://${ROUTE_HOSTNAME}/v2/atlas/java/",
+          "baseXMLInspectionServiceUrl": "https://${ROUTE_HOSTNAME}/v2/atlas/xml/",
+          "baseJSONInspectionServiceUrl": "https://${ROUTE_HOSTNAME}/v2/atlas/json/",
+          "baseMappingServiceUrl": "https://${ROUTE_HOSTNAME}/v2/atlas/"
+        },
+        "oauth": {
+          "clientId": "syndesis-ui",
+          "scopes": ["openid"],
+          "oidc": true,
+          "hybrid": true,
+          "issuer": "https://${ROUTE_HOSTNAME}/auth/realms/${KEYCLOAK_SYNDESIS_REALM_NAME}",
+          "auto-link-github": ${CONTROLLERS_INTEGRATION_ENABLED}
+        },
+        "branding": {
+          "logoWhiteBg": "assets/images/syndesis-logo-svg-white.svg",
+          "logoDarkBg": "assets/images/syndesis-logo-svg-white.svg",
+          "iconWhiteBg": "assets/images/glasses_logo_square.png",
+          "iconDarkBg": "assets/images/glasses_logo_square.png",
+          "appName": "Syndesis",
+          "favicon32": "/favicon-32x32.png",
+          "favicon16": "/favicon-16x16.png",
+          "touchIcon": "/apple-touch-icon.png"
+       }
+      }
 - apiVersion: v1
   kind: ServiceAccount
   metadata:
@@ -205,7 +365,7 @@ objects:
           pod.beta.kubernetes.io/init-containers: |-
             [{
               "name": "openshift-ca-pemtokeystore",
-              "image": "syndesis/pemtokeystore:v0.2.1",
+              "image": "${SYNDESIS_REGISTRY}/syndesis/pemtokeystore:v0.2.1",
               "imagePullPolicy": "IfNotPresent",
               "args": [
                 "-keystore", "/tls-keystore/openshift-truststore.jks",
@@ -221,7 +381,7 @@ objects:
                 "limits": {
                   "memory": "255Mi"
                 },
-                "requests": { 
+                "requests": {
                   "memory": "20Mi"
                 }
               }
@@ -229,7 +389,7 @@ objects:
       spec:
         initContainers:
         - name: openshift-ca-pemtokeystore
-          image: syndesis/pemtokeystore:v0.2.1
+          image: ${SYNDESIS_REGISTRY}/syndesis/pemtokeystore:v0.2.1
           imagePullPolicy: IfNotPresent
           args:
           - -keystore
@@ -291,10 +451,8 @@ objects:
             mountPath: /deployments/config
           resources:
             limits:
-              cpu: 2000m
               memory: 612Mi
             requests:
-              cpu: 200m
               memory: 255Mi
         volumes:
         - name: syndesis-atlasmap-tls
@@ -304,6 +462,7 @@ objects:
             name: syndesis-atlasmap-config
     triggers:
     - type: ConfigChange
+
 
 
 - apiVersion: v1
@@ -607,7 +766,7 @@ objects:
           pod.beta.kubernetes.io/init-containers: |-
             [{
               "name": "openshift-ca-pemtokeystore",
-              "image": "syndesis/pemtokeystore:v0.2.1",
+              "image": "${SYNDESIS_REGISTRY}/syndesis/pemtokeystore:v0.2.1",
               "imagePullPolicy": "IfNotPresent",
               "args": [
                 "-keystore", "/tls-keystore/openshift-truststore.jks",
@@ -627,11 +786,37 @@ objects:
                   "memory": "20Mi"
                 }
               }
+            },{
+              "name": "copy-config",
+              "image": "${SYNDESIS_REGISTRY}/syndesis/keycloak-openshift:2.5.4.Final",
+              "imagePullPolicy": "IfNotPresent",
+              "command": [
+                "sh",
+                "-c"
+              ],
+              "args": [
+                "cp /opt/jboss/keycloak/standalone/configuration/* /config/ && cp /custom-config/* /config/"
+              ],
+              "volumeMounts": [{
+                "name": "syndesis-keycloak-full-config",
+                "mountPath": "/config"
+              },{
+                "name": "syndesis-keycloak-config",
+                "mountPath": "/custom-config"
+              }],
+              "resources": {
+                "limits": {
+                  "memory": "255Mi"
+                },
+                "requests": {
+                  "memory": "20Mi"
+                }
+              }
             }]
       spec:
         initContainers:
         - name: openshift-ca-pemtokeystore
-          image: syndesis/pemtokeystore:v0.2.1
+          image: ${SYNDESIS_REGISTRY}/syndesis/pemtokeystore:v0.2.1
           imagePullPolicy: IfNotPresent
           args:
           - -keystore
@@ -645,6 +830,24 @@ objects:
           volumeMounts:
           - name: syndesis-keycloak-tls
             mountPath: /tls-keystore
+          resources:
+            limits:
+              memory: 255Mi
+            requests:
+              memory: 20Mi
+        - name: copy-config
+          image: ${SYNDESIS_REGISTRY}/syndesis/keycloak-openshift:2.5.4.Final
+          imagePullPolicy: IfNotPresent
+          command:
+          - sh
+          - -c
+          args:
+          - "cp -f /opt/jboss/keycloak/standalone/configuration/* /config/ && cp /custom-config/* /config/"
+          volumeMounts:
+          - name: syndesis-keycloak-full-config
+            mountPath: /config
+          - name: syndesis-keycloak-config
+            mountPath: /custom-config
           resources:
             limits:
               memory: 255Mi
@@ -668,7 +871,7 @@ objects:
               secretKeyRef:
                 key: password
                 name: syndesis-keycloak-admin
-          image: jimmidyson/keycloak-openshift:2.5.4.Final
+          image: ${SYNDESIS_REGISTRY}/syndesis/keycloak-openshift:2.5.4.Final
 
           name: syndesis-keycloak
           imagePullPolicy: IfNotPresent
@@ -691,26 +894,20 @@ objects:
           ports:
           - containerPort: 8080
           volumeMounts:
-          - name: syndesis-keycloak-config
-            mountPath: /opt/jboss/keycloak/standalone/configuration/standalone.xml
-            subPath: config/standalone.xml
-          - name: syndesis-keycloak-config
-            mountPath: /opt/jboss/keycloak/standalone/configuration/syndesis-realm.json
-            subPath: config/syndesis-realm.json
+          - name: syndesis-keycloak-full-config
+            mountPath: /opt/jboss/keycloak/standalone/configuration
           - name: syndesis-keycloak-tls
             mountPath: /opt/jboss/keycloak/standalone/configuration/tls
         volumes:
         - name: syndesis-keycloak-config
           configMap:
             name: syndesis-keycloak-config
-            items:
-            - key: standalone.xml
-              path: config/standalone.xml
-            - key: syndesis-realm.json
-              path: config/syndesis-realm.json
         - name: syndesis-keycloak-tls
           emptyDir: {}
+        - name: syndesis-keycloak-full-config
+          emptyDir: {}
     triggers:
+
 
     - type: ConfigChange
 
@@ -1725,104 +1922,6 @@ objects:
         "clientAuthenticationFlow": "clients"
       }
 - apiVersion: v1
-  kind: Service
-  metadata:
-    labels:
-      app: syndesis
-      component: syndesis-openshift-proxy
-    annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: syndesis-openshift-proxy-tls
-    name: syndesis-openshift-proxy
-  spec:
-    ports:
-    - port: 443
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      app: syndesis
-      component: syndesis-openshift-proxy
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    labels:
-      app: syndesis
-      component: syndesis-openshift-proxy
-    name: syndesis-openshift-proxy
-  spec:
-    replicas: 1
-    selector:
-      app: syndesis
-      component: syndesis-openshift-proxy
-      deploymentconfig: syndesis-openshift-proxy
-    strategy:
-      rollingParams:
-        intervalSeconds: 1
-        maxSurge: 25%
-        maxUnavailable: 25%
-        timeoutSeconds: 600
-        updatePeriodSeconds: 1
-      resources:
-        limits:
-          memory: "256Mi"
-        requests:
-          memory: "20Mi"
-      type: Rolling
-    template:
-      metadata:
-        labels:
-          app: syndesis
-          component: syndesis-openshift-proxy
-          deploymentconfig: syndesis-openshift-proxy
-      spec:
-        containers:
-        - name: syndesis-openshift-proxy
-          image: syndesis/token-rp:v0.6.2
-
-          imagePullPolicy: IfNotPresent
-          args:
-          - -issuer-url=https://${ROUTE_HOSTNAME}/auth/realms/${KEYCLOAK_SYNDESIS_REALM_NAME}
-          - -proxy-url=${OPENSHIFT_MASTER}
-          - -client-id=syndesis-ui
-          - -provider-alias=openshift
-          - -provider-type=openshift
-          - -tls-cert=/tls/tls.crt
-          - -tls-key=/tls/tls.key
-          - -ca-cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          - -ca-cert=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
-          - -insecure-skip-verify=${INSECURE_SKIP_VERIFY}
-          livenessProbe:
-            initialDelaySeconds: 180
-            tcpSocket:
-              port: 8080
-          readinessProbe:
-            tcpSocket:
-              port: 8080
-            initialDelaySeconds: 10
-          ports:
-          - containerPort: 8080
-          volumeMounts:
-          - mountPath: /tls
-            name: tls-volume
-          # QoS class "Burstable", as the we actually (a) dont expect the 
-          # the contaner to eat up that much of memory and (b) not essential
-          # for the core functionality (but only for openshift related operations for
-          # running integrations)
-          # Note: Does not work on OSO (theres a fixed ration between limits / requests)
-          resources:
-            limits:
-              cpu: 1000m
-              memory: 255Mi
-            requests:
-              cpu: 200m
-              memory: 40Mi
-        volumes:
-        - secret:
-            secretName: syndesis-openshift-proxy-tls
-          name: tls-volume
-    triggers:
-
-    - type: ConfigChange
-- apiVersion: v1
   kind: ServiceAccount
   metadata:
     name: syndesis-rest
@@ -1862,7 +1961,7 @@ objects:
     name: syndesis-rest
   spec:
     host: ${ROUTE_HOSTNAME}
-    path: /api/v1
+    path: /api
     port:
       targetPort: 8080
     tls:
@@ -1921,7 +2020,7 @@ objects:
           pod.beta.kubernetes.io/init-containers: |-
             [{
               "name": "openshift-ca-pemtokeystore",
-              "image": "syndesis/pemtokeystore:v0.2.1",
+              "image": "${SYNDESIS_REGISTRY}/syndesis/pemtokeystore:v0.2.1",
               "imagePullPolicy": "IfNotPresent",
               "args": [
                 "-keystore", "/tls-keystore/openshift-truststore.jks",
@@ -1945,7 +2044,7 @@ objects:
       spec:
         initContainers:
         - name: openshift-ca-pemtokeystore
-          image: syndesis/pemtokeystore:v0.2.1
+          image: ${SYNDESIS_REGISTRY}/syndesis/pemtokeystore:v0.2.1
           imagePullPolicy: IfNotPresent
           args:
           - -keystore
@@ -1984,6 +2083,8 @@ objects:
             value: ${TEST_SUPPORT_ENABLED}
           - name: CONTROLLERS_INTEGRATION_ENABLED
             value: ${CONTROLLERS_INTEGRATION_ENABLED}
+          - name: POSTGRESQL_SAMPLEDB_PASSWORD
+            value: ${POSTGRESQL_SAMPLEDB_PASSWORD}
           - name: KEYCLOAK_ADMIN_USERNAME
             valueFrom:
               secretKeyRef:
@@ -2028,7 +2129,6 @@ objects:
             limits:
               memory: 612Mi
             requests:
-              cpu: 200m
               memory: 256Mi
         volumes:
         - name: syndesis-rest-tls
@@ -2037,6 +2137,7 @@ objects:
           configMap:
             name: syndesis-rest-config
     triggers:
+
 
     - type: ConfigChange
 
@@ -2080,7 +2181,6 @@ objects:
         jsondb:
           enabled: true
       openshift:
-        openShiftHost: syndesis-openshift-proxy.${NAMESPACE}.svc
         apiBaseUrl: ${OPENSHIFT_MASTER}/oapi/v1
         namespace: ${NAMESPACE}
       keycloak:
@@ -2097,156 +2197,6 @@ objects:
         "ssl-required": "external",
         "resource": "syndesis-rest",
         "allow-any-hostname" : ${KEYCLOAK_ALLOW_ANY_HOSTNAME}
-      }
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: syndesis-ui
-    labels:
-      app: syndesis
-      component: syndesis-ui
-    annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: syndesis-ui-tls
-      service.alpha.openshift.io/dependencies: |
-        [ {"name":"syndesis-keycloak","kind":"Service"},
-          {"name":"syndesis-rest","kind":"Service"},
-          {"name":"syndesis-verifier","kind":"Service"},
-          {"name":"syndesis-atlasmap","kind":"Service"},
-          {"name":"syndesis-github-proxy","kind":"Service"},
-          {"name":"syndesis-openshift-proxy","kind":"Service"},
-          {"name":"syndesis-db","kind":"Service"} ]
-  spec:
-    ports:
-    - port: 8080
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      app: syndesis
-      component: syndesis-ui
-- apiVersion: v1
-  kind: Route
-  metadata:
-    labels:
-      app: syndesis
-      component: syndesis-ui
-    name: syndesis-ui
-  spec:
-    host: ${ROUTE_HOSTNAME}
-    port:
-      targetPort: 8080
-    tls:
-      insecureEdgeTerminationPolicy: Redirect
-      termination: edge
-    to:
-      kind: Service
-      name: syndesis-ui
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    labels:
-      app: syndesis
-      component: syndesis-ui
-    name: syndesis-ui
-  spec:
-    replicas: 1
-    selector:
-      app: syndesis
-      component: syndesis-ui
-      deploymentconfig: syndesis-ui
-    strategy:
-      rollingParams:
-        intervalSeconds: 1
-        maxSurge: 25%
-        maxUnavailable: 25%
-        timeoutSeconds: 600
-        updatePeriodSeconds: 1
-      resources:
-        limits:
-          memory: "256Mi"
-        requests:
-          memory: "20Mi"
-      type: Rolling
-    template:
-      metadata:
-        labels:
-          app: syndesis
-          component: syndesis-ui
-          deploymentconfig: syndesis-ui
-      spec:
-        containers:
-        - name: syndesis-ui
-          image: ${SYNDESIS_REGISTRY}/syndesis/syndesis-ui:latest
-
-          imagePullPolicy: IfNotPresent
-          livenessProbe:
-            httpGet:
-              path: "/"
-              port: 8080
-            initialDelaySeconds: 30
-          readinessProbe:
-            httpGet:
-              path: "/"
-              port: 8080
-            initialDelaySeconds: 1
-          ports:
-          - containerPort: 8080
-          volumeMounts:
-          - mountPath: /usr/share/nginx/html/config.json
-            name: config-volume
-            subPath: config/config.json
-          # Set to burstable with a low memory footprint to start (50 Mi)
-          resources:
-            limits:
-              memory: 255Mi
-            requests:
-              cpu: 200m
-              memory: 50Mi
-        volumes:
-        - configMap:
-            items:
-            - key: config.json
-              path: config/config.json
-            name: syndesis-ui-config
-          name: config-volume
-    triggers:
-
-    - type: ConfigChange
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: syndesis-ui-config
-    labels:
-      app: syndesis
-      component: syndesis-ui
-  data:
-    config.json: |
-      {
-        "apiEndpoint": "https://${ROUTE_HOSTNAME}/api/v1",
-        "title": "Syndesis",
-        "datamapper": {
-          "baseJavaInspectionServiceUrl": "https://${ROUTE_HOSTNAME}/v2/atlas/java/",
-          "baseXMLInspectionServiceUrl": "https://${ROUTE_HOSTNAME}/v2/atlas/xml/",
-          "baseJSONInspectionServiceUrl": "https://${ROUTE_HOSTNAME}/v2/atlas/json/",
-          "baseMappingServiceUrl": "https://${ROUTE_HOSTNAME}/v2/atlas/"
-        },
-        "oauth": {
-          "clientId": "syndesis-ui",
-          "scopes": ["openid"],
-          "oidc": true,
-          "hybrid": true,
-          "issuer": "https://${ROUTE_HOSTNAME}/auth/realms/${KEYCLOAK_SYNDESIS_REALM_NAME}",
-          "auto-link-github": ${CONTROLLERS_INTEGRATION_ENABLED}
-        },
-        "branding": {
-          "logoWhiteBg": "assets/images/syndesis-logo-svg-white.svg",
-          "logoDarkBg": "assets/images/syndesis-logo-svg-white.svg",
-          "iconWhiteBg": "assets/images/glasses_logo_square.png",
-          "iconDarkBg": "assets/images/glasses_logo_square.png",
-          "appName": "Syndesis",
-          "favicon32": "/favicon-32x32.png",
-          "favicon16": "/favicon-16x16.png",
-          "touchIcon": "/apple-touch-icon.png"
-       }
       }
 - apiVersion: v1
   kind: Service
@@ -2293,7 +2243,7 @@ objects:
           pod.beta.kubernetes.io/init-containers: |-
             [{
               "name": "openshift-ca-pemtokeystore",
-              "image": "syndesis/pemtokeystore:v0.2.1",
+              "image": "${SYNDESIS_REGISTRY}/syndesis/pemtokeystore:v0.2.1",
               "imagePullPolicy": "IfNotPresent",
               "args": [
                 "-keystore", "/tls-keystore/openshift-truststore.jks",
@@ -2309,7 +2259,7 @@ objects:
                 "limits": {
                   "memory": "255Mi"
                 },
-                "requests": { 
+                "requests": {
                   "memory": "20Mi"
                 }
               }
@@ -2317,7 +2267,7 @@ objects:
       spec:
         initContainers:
         - name: openshift-ca-pemtokeystore
-          image: syndesis/pemtokeystore:v0.2.1
+          image: ${SYNDESIS_REGISTRY}/syndesis/pemtokeystore:v0.2.1
           imagePullPolicy: IfNotPresent
           args:
           - -keystore
@@ -2371,10 +2321,8 @@ objects:
             protocol: TCP
           resources:
             limits:
-              cpu: 2000m
               memory: 512Mi
             requests:
-              cpu: 200m
               memory: 280Mi
           # spring-boot automatically picks up application.yml from ./config
           workingDir: /deployments
@@ -2390,6 +2338,7 @@ objects:
           configMap:
             name: syndesis-verifier-config
     triggers:
+
 
     - type: ConfigChange
 

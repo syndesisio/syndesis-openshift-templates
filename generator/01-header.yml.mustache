@@ -2,6 +2,20 @@ apiVersion: v1
 kind: Template
 metadata:
   name: {{Name}}
+#
+# Template flavor:
+#
+# Allow localhost refs: {{AllowLocalHost}}
+# Use docker images: {{WithDockerImages}}
+# Use docker images for init containers: {{WithInitContainerDockerImages}}
+# Ephemeral: {{Ephemeral}}
+# Without Probes: {{Probeless}}
+# Atlasmap Tag: {{Tags.Atlasmap}}
+# Syndesis Tag: {{Tags.Syndesis}}
+# Restricted environment: {{Restricted}}
+#
+  labels:
+    app: syndesis
 parameters:
 # Parameters with no defaults (has to be be provided when template is applied):
 - name: ROUTE_HOSTNAME
@@ -104,21 +118,17 @@ parameters:
   displayName: Test Support Enabled
   name: TEST_SUPPORT_ENABLED
   required: true
-  value: "true"
+  value: "false"
 - description: Enables starting up with demo data
   displayName: Demo Data Enabled
   name: DEMO_DATA_ENABLED
   required: true
-  value: "true"
-- description: Ignore SSL errors in proxy containers
-  displayName: Insecure skip verify
-  name: INSECURE_SKIP_VERIFY
-  value: 'false'
+  value: "false"
 - description: Registry from where to fetch Syndesis images
   displayName: Syndesis Image Registry
   name: SYNDESIS_REGISTRY
   required: true
-  value: 'docker.io'
+  value: '{{ Registry }}'
 - description: Should deployment of integrations be enabled?
   displayName: Enable Integration Deployment
   name: CONTROLLERS_INTEGRATION_ENABLED
@@ -131,6 +141,10 @@ parameters:
   displayName: Idle Session Lifespan
   name: SESSION_LIFESPAN
   value: '36000'
+- description: Namespace containing image streams
+  displayName: Image Stream Namespace
+  name: IMAGE_STREAM_NAMESPACE
+  value: '{{ Images.ImageStreamNamespace }}'
 message: |-
   Syndesis is deployed to ${ROUTE_HOSTNAME}.
 

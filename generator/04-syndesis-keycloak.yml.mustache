@@ -97,7 +97,7 @@
           pod.beta.kubernetes.io/init-containers: |-
             [{
               "name": "openshift-ca-pemtokeystore",
-              "image": "{{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}",
+              "image": "{{^WithInitContainerDockerImages}}' '{{/WithInitContainerDockerImages}}{{#WithInitContainerDockerImages}}${SYNDESIS_REGISTRY}/{{ Images.SyndesisImagesPrefix }}/{{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}{{/WithInitContainerDockerImages}}",
               "imagePullPolicy": "IfNotPresent",
               "args": [
                 "-keystore", "/tls-keystore/openshift-truststore.jks",
@@ -117,11 +117,37 @@
                   "memory": "20Mi"
                 }
               }
+            },{
+              "name": "copy-config",
+              "image": "{{^WithInitContainerDockerImages}}' '{{/WithInitContainerDockerImages}}{{#WithInitContainerDockerImages}}${SYNDESIS_REGISTRY}/{{Images.SyndesisImagesPrefix}}/{{ Images.Support.Keycloak }}:{{ Tags.Keycloak }}{{/WithInitContainerDockerImages}}",
+              "imagePullPolicy": "IfNotPresent",
+              "command": [
+                "sh",
+                "-c"
+              ],
+              "args": [
+                "cp /opt/jboss/keycloak/standalone/configuration/* /config/ && cp /custom-config/* /config/"
+              ],
+              "volumeMounts": [{
+                "name": "syndesis-keycloak-full-config",
+                "mountPath": "/config"
+              },{
+                "name": "syndesis-keycloak-config",
+                "mountPath": "/custom-config"
+              }],
+              "resources": {
+                "limits": {
+                  "memory": "255Mi"
+                },
+                "requests": {
+                  "memory": "20Mi"
+                }
+              }
             }]
       spec:
         initContainers:
         - name: openshift-ca-pemtokeystore
-          image: {{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}
+          image: {{^WithInitContainerDockerImages}}' '{{/WithInitContainerDockerImages}}{{#WithInitContainerDockerImages}}${SYNDESIS_REGISTRY}/{{ Images.SyndesisImagesPrefix }}/{{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}{{/WithInitContainerDockerImages}}
           imagePullPolicy: IfNotPresent
           args:
           - -keystore
@@ -135,6 +161,24 @@
           volumeMounts:
           - name: syndesis-keycloak-tls
             mountPath: /tls-keystore
+          resources:
+            limits:
+              memory: 255Mi
+            requests:
+              memory: 20Mi
+        - name: copy-config
+          image: {{^WithInitContainerDockerImages}}' '{{/WithInitContainerDockerImages}}{{#WithInitContainerDockerImages}}${SYNDESIS_REGISTRY}/{{Images.SyndesisImagesPrefix}}/{{ Images.Support.Keycloak }}:{{ Tags.Keycloak }}{{/WithInitContainerDockerImages}}
+          imagePullPolicy: IfNotPresent
+          command:
+          - sh
+          - -c
+          args:
+          - "cp -f /opt/jboss/keycloak/standalone/configuration/* /config/ && cp /custom-config/* /config/"
+          volumeMounts:
+          - name: syndesis-keycloak-full-config
+            mountPath: /config
+          - name: syndesis-keycloak-config
+            mountPath: /custom-config
           resources:
             limits:
               memory: 255Mi
@@ -158,11 +202,11 @@
               secretKeyRef:
                 key: password
                 name: syndesis-keycloak-admin
-{{^Dev}}
+{{^WithDockerImages}}
           image: ' '
-{{/Dev}}{{#Dev}}
-          image: {{ Images.Support.Keycloak }}:{{ Tags.Keycloak }}
-{{/Dev}}
+{{/WithDockerImages}}{{#WithDockerImages}}
+          image: ${SYNDESIS_REGISTRY}/{{Images.SyndesisImagesPrefix}}/{{ Images.Support.Keycloak }}:{{ Tags.Keycloak }}
+{{/WithDockerImages}}
           name: syndesis-keycloak
           imagePullPolicy: IfNotPresent
 {{^Probeless}}
@@ -185,36 +229,50 @@
           ports:
           - containerPort: 8080
           volumeMounts:
-          - name: syndesis-keycloak-config
-            mountPath: /opt/jboss/keycloak/standalone/configuration/standalone.xml
-            subPath: config/standalone.xml
-          - name: syndesis-keycloak-config
-            mountPath: /opt/jboss/keycloak/standalone/configuration/syndesis-realm.json
-            subPath: config/syndesis-realm.json
+          - name: syndesis-keycloak-full-config
+            mountPath: /opt/jboss/keycloak/standalone/configuration
           - name: syndesis-keycloak-tls
             mountPath: /opt/jboss/keycloak/standalone/configuration/tls
         volumes:
         - name: syndesis-keycloak-config
           configMap:
             name: syndesis-keycloak-config
-            items:
-            - key: standalone.xml
-              path: config/standalone.xml
-            - key: syndesis-realm.json
-              path: config/syndesis-realm.json
         - name: syndesis-keycloak-tls
           emptyDir: {}
+        - name: syndesis-keycloak-full-config
+          emptyDir: {}
     triggers:
-{{^Dev}}
+{{^WithDockerImages}}
     - imageChangeParams:
         automatic: true
         containerNames:
         - syndesis-keycloak
         from:
           kind: ImageStreamTag
-          name: syndesis-keycloak:{{ Tags.Keycloak }}
+          name: {{ Images.Support.Keycloak }}:{{ Tags.Keycloak }}
+          namespace: ${IMAGE_STREAM_NAMESPACE}
       type: ImageChange
-{{/Dev}}
+{{/WithDockerImages}}
+{{^WithInitContainerDockerImages}}
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - openshift-ca-pemtokeystore
+        from:
+          kind: ImageStreamTag
+          name: {{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}
+          namespace: ${IMAGE_STREAM_NAMESPACE}
+      type: ImageChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - copy-config
+        from:
+          kind: ImageStreamTag
+          name: {{ Images.Support.Keycloak }}:{{ Tags.Keycloak }}
+          namespace: ${IMAGE_STREAM_NAMESPACE}
+      type: ImageChange
+{{/WithInitContainerDockerImages}}
     - type: ConfigChange
 
 
@@ -862,11 +920,11 @@
           "surrogateAuthRequired": false,
           "enabled": true,
           "clientAuthenticatorType": "client-secret",
-{{#Dev}}
+{{#AllowLocalHost}}
           "redirectUris": [ "https://${ROUTE_HOSTNAME}/*", "http://localhost:4200/*", "https://localhost:4200/*"],
-{{/Dev}}{{^Dev}}
+{{/AllowLocalHost}}{{^AllowLocalHost}}
           "redirectUris": [ "https://${ROUTE_HOSTNAME}/*" ],
-{{/Dev}}
+{{/AllowLocalHost}}
           "webOrigins": [ "+" ],
           "notBefore": 0,
           "bearerOnly": false,

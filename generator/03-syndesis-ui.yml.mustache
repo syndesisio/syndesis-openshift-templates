@@ -75,11 +75,11 @@
       spec:
         containers:
         - name: syndesis-ui
-{{^Dev}}
+{{^WithDockerImages}}
           image: ' '
-{{/Dev}}{{#Dev}}
-          image: ${SYNDESIS_REGISTRY}/{{ Images.Syndesis.Ui }}:{{ Tags.Syndesis }}
-{{/Dev}}
+{{/WithDockerImages}}{{#WithDockerImages}}
+          image: ${SYNDESIS_REGISTRY}/{{ Images.SyndesisImagesPrefix }}/{{ Images.Syndesis.Ui }}:{{ Tags.Syndesis }}
+{{/WithDockerImages}}
           imagePullPolicy: IfNotPresent
 {{^Probeless}}
           livenessProbe:
@@ -97,32 +97,28 @@
           volumeMounts:
           - mountPath: /opt/app-root/src/config.json
             name: config-volume
-            subPath: config/config.json
           # Set to burstable with a low memory footprint to start (50 Mi)
           resources:
             limits:
               memory: 255Mi
             requests:
-              cpu: 200m
               memory: 50Mi
         volumes:
         - configMap:
-            items:
-            - key: config.json
-              path: config/config.json
             name: syndesis-ui-config
           name: config-volume
     triggers:
-{{^Dev}}
+{{^WithDockerImages}}
     - imageChangeParams:
         automatic: true
         containerNames:
         - syndesis-ui
         from:
           kind: ImageStreamTag
-          name: syndesis-ui:{{ Tags.Syndesis }}
+          name: {{ Images.Syndesis.Ui }}:{{ Tags.Syndesis }}
+          namespace: ${IMAGE_STREAM_NAMESPACE}
       type: ImageChange
-{{/Dev}}
+{{/WithDockerImages}}
     - type: ConfigChange
 - apiVersion: v1
   kind: ConfigMap
@@ -154,8 +150,8 @@
         "branding": {
           "logoWhiteBg": "",
           "logoDarkBg": "",
-          "iconWhiteBg": "assets/images/product-logo.svg",
-          "iconDarkBg": "assets/images/product-logo.svg",
+          "iconWhiteBg": "assets/images/FuseIgniteLogo_Black.svg",
+          "iconDarkBg": "assets/images/FuseIgniteLogo_White.svg",
           "appName": "Fuse Ignite",
           "favicon32": "/favicon-32x32.png",
           "favicon16": "/favicon-16x16.png",

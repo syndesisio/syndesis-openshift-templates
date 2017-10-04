@@ -38,7 +38,6 @@ var installCommand = &cobra.Command{
 
 type supportImages struct {
 	PemToKeystore string
-	TokenRp       string
 	Keycloak      string
 	Postgresql    string
 }
@@ -51,13 +50,15 @@ type syndesisImages struct {
 }
 
 type images struct {
-	Support  supportImages
-	Syndesis syndesisImages
+	Support              supportImages
+	Syndesis             syndesisImages
+	ImageStreamNamespace string
+	SyndesisImagesPrefix string
+	AtlasMapImagesPrefix string
 }
 
 type tags struct {
 	Keycloak      string
-	TokenRp       string
 	Syndesis      string
 	Atlasmap      string
 	Postgresql    string
@@ -65,87 +66,94 @@ type tags struct {
 }
 
 type Context struct {
-	Name        string
-	Dev         bool
-	Ephemeral   bool
-	Restricted  bool
-	Probeless   bool
-	Productized bool
-	Tag         string
-	Registry    string
-	Images      images
-	Tags        tags
+	Name                          string
+	AllowLocalHost                bool
+	WithDockerImages              bool
+	WithInitContainerDockerImages bool
+	Ephemeral                     bool
+	Restricted                    bool
+	Probeless                     bool
+	Productized                   bool
+	Tag                           string
+	Registry                      string
+	Images                        images
+	Tags                          tags
 }
 
 // TODO: Could be added from a local configuration file
 var syndesisContext = Context{
 	Images: images{
+		SyndesisImagesPrefix: "syndesis",
+		AtlasMapImagesPrefix: "atlasmap",
 		Support: supportImages{
-			PemToKeystore: "syndesis/pemtokeystore",
-			TokenRp:       "syndesis/token-rp",
-			Keycloak:      "jimmidyson/keycloak-openshift",
+			PemToKeystore: "pemtokeystore",
+			Keycloak:      "keycloak-openshift",
 			Postgresql:    "postgresql",
 		},
 		Syndesis: syndesisImages{
-			Rest:     "syndesis/syndesis-rest",
-			Ui:       "syndesis/syndesis-ui",
-			Verifier: "syndesis/syndesis-verifier",
-			Atlasmap: "atlasmap/atlasmap",
+			Rest:     "syndesis-rest",
+			Ui:       "syndesis-ui",
+			Verifier: "syndesis-verifier",
+			Atlasmap: "atlasmap",
 		},
 	},
 	Tags: tags{
 		Postgresql:    "9.5",
 		PemToKeystore: "v0.2.1",
 		Keycloak:      "2.5.4.Final",
-		TokenRp:       "v0.6.2",
 	},
 }
 
 // TODO: Update with product image references here
 var productContext = Context{
 	Images: images{
+		ImageStreamNamespace: "fuse-ignite",
+		SyndesisImagesPrefix: "syndesis",
+		AtlasMapImagesPrefix: "atlasmap",
 		Support: supportImages{
-			PemToKeystore: "syndesis/pemtokeystore",
-			TokenRp:       "syndesis/token-rp",
-			Keycloak:      "jimmidyson/keycloak-openshift",
+			PemToKeystore: "fuse-ignite-pemtokeystore",
+			Keycloak:      "fuse-ignite-keycloak-openshift",
 			Postgresql:    "postgresql",
 		},
 		Syndesis: syndesisImages{
-			Rest:     "syndesis/syndesis-rest",
-			Ui:       "syndesis/syndesis-ui",
-			Verifier: "syndesis/syndesis-verifier",
-			Atlasmap: "atlasmap/atlasmap",
+			Rest:     "fuse-ignite-rest",
+			Ui:       "fuse-ignite-ui",
+			Verifier: "fuse-ignite-verifier",
+			Atlasmap: "fuse-ignite-mapper",
 		},
 	},
 	Tags: tags{
 		Postgresql:    "9.5",
-		PemToKeystore: "v0.2.1",
-		Keycloak:      "2.5.4.Final",
-		TokenRp:       "v0.6.2",
+		PemToKeystore: "1.0",
+		Keycloak:      "1.0",
+		Syndesis:      "1.0",
+		Atlasmap:      "1.0",
 	},
+	Registry: "registry.fuse-ignite.openshift.com",
 }
 
 var context = syndesisContext
-var isProduct bool
 
 func init() {
 	flags := installCommand.PersistentFlags()
 
 	flags.StringVar(&context.Name, "name", "syndesis", "Name of the template")
-	flags.BoolVar(&context.Dev, "dev", false, "Developer mode?")
+	flags.BoolVar(&context.AllowLocalHost, "allow-localhost", false, "Allow localhost")
+	flags.BoolVar(&context.WithDockerImages, "with-docker-images", false, "With docker images")
+	flags.BoolVar(&context.WithInitContainerDockerImages, "with-init-container-docker-images", false, "With init container docker images")
 	flags.BoolVar(&context.Restricted, "restricted", false, "Restricted mode?")
 	flags.BoolVar(&context.Ephemeral, "ephemeral", false, "Ephemeral mode?")
 	flags.BoolVar(&context.Probeless, "probeless", false, "Without probes")
-	flags.StringVar(&context.Tags.Syndesis, "syndesis", "latest", "Syndesis Image tag to use")
-	flags.StringVar(&context.Tags.Atlasmap, "atlasmap", "latest", "Atlasmap image to use")
-	flags.BoolVar(&isProduct, "product", false, "Generate product templates?")
+	flags.StringVar(&context.Tags.Syndesis, "syndesis-tag", "latest", "Syndesis Image tag to use")
+	flags.StringVar(&context.Tags.Atlasmap, "atlasmap-tag", "latest", "Atlasmap image to use")
+	flags.BoolVar(&context.Productized, "product", false, "Generate product templates?")
 	flags.StringVar(&context.Registry, "registry", "docker.io", "Registry to use for imagestreams")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 }
 
 func install(cmd *cobra.Command, args []string) {
 
-	if isProduct {
+	if context.Productized {
 		if err := mergo.MergeWithOverwrite(&context, productContext); err != nil {
 			log.Fatal("Cannot merge in product image names")
 		}

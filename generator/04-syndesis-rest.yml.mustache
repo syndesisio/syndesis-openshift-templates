@@ -38,7 +38,7 @@
     name: syndesis-rest
   spec:
     host: ${ROUTE_HOSTNAME}
-    path: /api/v1
+    path: /api
     port:
       targetPort: 8080
     tls:
@@ -97,7 +97,7 @@
           pod.beta.kubernetes.io/init-containers: |-
             [{
               "name": "openshift-ca-pemtokeystore",
-              "image": "{{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}",
+              "image": "{{^WithInitContainerDockerImages}}' '{{/WithInitContainerDockerImages}}{{#WithInitContainerDockerImages}}${SYNDESIS_REGISTRY}/{{ Images.SyndesisImagesPrefix }}/{{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}{{/WithInitContainerDockerImages}}",
               "imagePullPolicy": "IfNotPresent",
               "args": [
                 "-keystore", "/tls-keystore/openshift-truststore.jks",
@@ -121,7 +121,7 @@
       spec:
         initContainers:
         - name: openshift-ca-pemtokeystore
-          image: {{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}
+          image: {{^WithInitContainerDockerImages}}' '{{/WithInitContainerDockerImages}}{{#WithInitContainerDockerImages}}${SYNDESIS_REGISTRY}/{{ Images.SyndesisImagesPrefix }}/{{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}{{/WithInitContainerDockerImages}}
           imagePullPolicy: IfNotPresent
           args:
           - -keystore
@@ -160,6 +160,8 @@
             value: ${TEST_SUPPORT_ENABLED}
           - name: CONTROLLERS_INTEGRATION_ENABLED
             value: ${CONTROLLERS_INTEGRATION_ENABLED}
+          - name: POSTGRESQL_SAMPLEDB_PASSWORD
+            value: ${POSTGRESQL_SAMPLEDB_PASSWORD}
           - name: KEYCLOAK_ADMIN_USERNAME
             valueFrom:
               secretKeyRef:
@@ -170,11 +172,11 @@
               secretKeyRef:
                 name: syndesis-keycloak-admin
                 key: password
-{{^Dev}}
+{{^WithDockerImages}}
           image: ' '
-{{/Dev}}{{#Dev}}
-          image: ${SYNDESIS_REGISTRY}/{{ Images.Syndesis.Rest }}:{{ Tags.Syndesis }}
-{{/Dev}}
+{{/WithDockerImages}}{{#WithDockerImages}}
+          image: ${SYNDESIS_REGISTRY}/{{Images.SyndesisImagesPrefix}}/{{ Images.Syndesis.Rest }}:{{ Tags.Syndesis }}
+{{/WithDockerImages}}
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
@@ -207,7 +209,6 @@
             limits:
               memory: 612Mi
             requests:
-              cpu: 200m
               memory: 256Mi
         volumes:
         - name: syndesis-rest-tls
@@ -216,16 +217,28 @@
           configMap:
             name: syndesis-rest-config
     triggers:
-{{^Dev}}
+{{^WithDockerImages}}
     - imageChangeParams:
         automatic: true
         containerNames:
         - syndesis-rest
         from:
           kind: ImageStreamTag
-          name: syndesis-rest:{{ Tags.Syndesis }}
+          name: {{ Images.Syndesis.Rest }}:{{ Tags.Syndesis }}
+          namespace: ${IMAGE_STREAM_NAMESPACE}
       type: ImageChange
-{{/Dev}}
+{{/WithDockerImages}}
+{{^WithInitContainerDockerImages}}
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - openshift-ca-pemtokeystore
+        from:
+          kind: ImageStreamTag
+          name: {{ Images.Support.PemToKeystore }}:{{ Tags.PemToKeystore }}
+          namespace: ${IMAGE_STREAM_NAMESPACE}
+      type: ImageChange
+{{/WithInitContainerDockerImages}}
     - type: ConfigChange
 
 - apiVersion: v1
@@ -240,11 +253,11 @@
       deployment:
         load-demo-data: ${DEMO_DATA_ENABLED}
       cors:
-{{^Dev}}
+{{^AllowLocalHost}}
         allowedOrigins: https://${ROUTE_HOSTNAME}
-{{/Dev}}{{#Dev}}
+{{/AllowLocalHost}}{{#AllowLocalHost}}
         allowedOrigins: http://localhost:4200, https://localhost:4200, https://${ROUTE_HOSTNAME}
-{{/Dev}}
+{{/AllowLocalHost}}
       cache:
         cluster:
           name: SyndesisCluster
@@ -271,7 +284,6 @@
         jsondb:
           enabled: true
       openshift:
-        openShiftHost: syndesis-openshift-proxy.${NAMESPACE}.svc
         apiBaseUrl: ${OPENSHIFT_MASTER}/oapi/v1
         namespace: ${NAMESPACE}
       keycloak:
