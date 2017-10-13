@@ -38,8 +38,8 @@ var installCommand = &cobra.Command{
 
 type supportImages struct {
 	PemToKeystore string
+	Keycloak      string
 	Postgresql    string
-	OAuthProxy    string
 }
 
 type syndesisImages struct {
@@ -56,21 +56,20 @@ type s2iConfig struct {
 }
 
 type images struct {
-	Support               supportImages
-	Syndesis              syndesisImages
-	S2i                   s2iConfig
-	ImageStreamNamespace  string
-	SyndesisImagesPrefix  string
-	AtlasMapImagesPrefix  string
-	OAuthProxyImagePrefix string
+	Support              supportImages
+	Syndesis             syndesisImages
+	S2i                  s2iConfig
+	ImageStreamNamespace string
+	SyndesisImagesPrefix string
+	AtlasMapImagesPrefix string
 }
 
 type tags struct {
+	Keycloak      string
 	Syndesis      string
 	Atlasmap      string
 	Postgresql    string
 	PemToKeystore string
-	OAuthProxy    string
 }
 
 type Context struct {
@@ -91,13 +90,12 @@ type Context struct {
 // TODO: Could be added from a local configuration file
 var syndesisContext = Context{
 	Images: images{
-		SyndesisImagesPrefix:  "syndesis",
-		AtlasMapImagesPrefix:  "atlasmap",
-		OAuthProxyImagePrefix: "openshift",
+		SyndesisImagesPrefix: "syndesis",
+		AtlasMapImagesPrefix: "atlasmap",
 		Support: supportImages{
 			PemToKeystore: "pemtokeystore",
+			Keycloak:      "keycloak-openshift",
 			Postgresql:    "postgresql",
-			OAuthProxy:    "oauth-proxy",
 		},
 		Syndesis: syndesisImages{
 			Rest:     "syndesis-rest",
@@ -114,21 +112,20 @@ var syndesisContext = Context{
 	Tags: tags{
 		Postgresql:    "9.5",
 		PemToKeystore: "v0.2.1",
-		OAuthProxy:    "v1.0.0",
+		Keycloak:      "2.5.4.Final",
 	},
 }
 
 // TODO: Update with product image references here
 var productContext = Context{
 	Images: images{
-		ImageStreamNamespace:  "fuse-ignite",
-		SyndesisImagesPrefix:  "syndesis",
-		AtlasMapImagesPrefix:  "atlasmap",
-		OAuthProxyImagePrefix: "openshift",
+		ImageStreamNamespace: "fuse-ignite",
+		SyndesisImagesPrefix: "syndesis",
+		AtlasMapImagesPrefix: "atlasmap",
 		Support: supportImages{
 			PemToKeystore: "fuse-ignite-pemtokeystore",
+			Keycloak:      "fuse-ignite-keycloak-openshift",
 			Postgresql:    "postgresql",
-			OAuthProxy:    "oauth-proxy",
 		},
 		Syndesis: syndesisImages{
 			Rest:     "fuse-ignite-rest",
@@ -144,10 +141,10 @@ var productContext = Context{
 	},
 	Tags: tags{
 		Postgresql:    "9.5",
-		PemToKeystore: "1.0.0",
-		Syndesis:      "1.0.0",
-		Atlasmap:      "1.30.0",
-		OAuthProxy:    "v1.0.0",
+		PemToKeystore: "1.0",
+		Keycloak:      "1.0",
+		Syndesis:      "1.0",
+		Atlasmap:      "1.30",
 	},
 	Registry: "registry.fuse-ignite.openshift.com",
 }
