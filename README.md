@@ -1,3 +1,10 @@
+---------
+# Repos moved
+
+**This repository is not longer active and has been moved to https://github.com/syndesisio/syndesis (code & issues)**
+
+----------
+
 # Syndesis OpenShift Templates
 
 This repository is about the canonical way to install Syndesis by using OpenShift templates for deploying on an OpenShift cluster.
